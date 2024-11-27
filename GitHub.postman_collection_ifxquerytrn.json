@@ -1,0 +1,192 @@
+{
+	"info": {
+		"_postman_id": "0d454cb2-5e56-495f-a13b-5ae798247f97",
+		"name": "GitHub",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "20861821"
+	},
+	"item": [
+		{
+			"name": "ifxquerytrn",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"var CryptoJS = require('crypto-js');\r",
+							"\r",
+							"/**\r",
+							" * 加密\r",
+							" */\r",
+							"function aesEncrypt(data,secret) {\r",
+							"    const keyBytes = stringToUTF8Bytes(secret);\r",
+							"    const inputBytes = stringToUTF8Bytes(data);\r",
+							"\r",
+							"    //console.log(keyBytes);\r",
+							"    console.log(inputBytes);\r",
+							"\r",
+							"    var keyWordArray = CryptoJS.lib.WordArray.create(keyBytes);\r",
+							"    var inputWordArray = CryptoJS.lib.WordArray.create(inputBytes);\r",
+							"\r",
+							"    //console.log(keyWordArray);\r",
+							"    //console.log(inputWordArray);\r",
+							"\r",
+							"    const encrypted = CryptoJS.AES.encrypt(inputWordArray,keyWordArray, {\r",
+							"      mode: CryptoJS.mode.ECB,\r",
+							"      padding: CryptoJS.pad.Pkcs7\r",
+							"    });\r",
+							"\r",
+							"    return encrypted.toString();\r",
+							"}\r",
+							"function stringToUTF8Bytes(str) {\r",
+							"    const utf8Encoded = Buffer.from(str,\"utf-8\");\r",
+							"    return utf8Encoded;\r",
+							"}\r",
+							"\r",
+							"// 金鑰\r",
+							"const secret = pm.environment.get(\"secret_key\");\r",
+							"console.log(secret)\r",
+							"var body = JSON.parse(pm.request.body.raw);\r",
+							"console.log(body)\r",
+							"console.log(JSON.stringify(body.TRANRQ))\r",
+							"// 加密\r",
+							"let encryptData = aesEncrypt(JSON.stringify(body.TRANRQ),secret);\r",
+							"\r",
+							"console.log(`encryptData:${encryptData}`);\r",
+							"\r",
+							"//轉HEX\r",
+							"var encryptedBytes = CryptoJS.enc.Utf8.parse(encryptData);\r",
+							"let encryptedHex = encryptedBytes.toString(CryptoJS.enc.Hex);\r",
+							"console.log(`encryptedBytes:${encryptedHex}`);\r",
+							"\r",
+							"body.TRANRQ = encryptedHex;\r",
+							"\r",
+							"//TXNKEY每次都要不同，用環境變數TXNKEY_SEQ來做共用序號\r",
+							"var TXNKEY_seq = parseInt(pm.environment.get(\"TXNKEY_SEQ\"));\r",
+							"TXNKEY_seq = TXNKEY_seq + 1;\r",
+							"var SOURCECHANNEL = body.MWHEADER.SOURCECHANNEL;\r",
+							"\r",
+							"//取出測試日期時間\r",
+							"let yourDate = new Date();\r",
+							"var todaytemp = yourDate.toISOString().split('T')[0]\r",
+							"yyyy = todaytemp.substr(0,4)\r",
+							"mm = todaytemp.substr(5,2)\r",
+							"dd = todaytemp.substr(8,2)\r",
+							"var today = yyyy + mm + dd\r",
+							"\r",
+							"//將SOURCECHANNEL+序號更新回到TXNKEY\r",
+							"body.MWHEADER.TXNKEY = SOURCECHANNEL + \"_\" + today +\"_\" + TXNKEY_seq;\r",
+							"\r",
+							"//設定測試日期\r",
+							"body.MWHEADER.TIMESTAMP = pm.environment.get(\"today\");;\r",
+							"\r",
+							"//完成後再更新回TXNKEY_SEQ\r",
+							"pm.environment.set(\"TXNKEY_SEQ\",TXNKEY_seq);\r",
+							"\r",
+							"// 修改請求體\r",
+							"pm.request.body.raw = body;\r",
+							"\r",
+							"// 修改頭\r",
+							"//pm.request.headers.upsert({ key: \"Content-Type\", value: \"application/json\"})\r",
+							"console.log(pm.request.body.raw);\r",
+							"console.log(`真實body:${pm.request.body.raw}`);\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var CryptoJS = require('crypto-js');\r",
+							"\r",
+							"/**\r",
+							" * 加密\r",
+							" */\r",
+							"function aesDecrypt(data,secret) {\r",
+							"    // 【HEX轉String】\r",
+							"    const hexBytesArray = hexToBytes(data);\r",
+							"    const base64String = bytesToBase64(hexBytesArray);\r",
+							"    \r",
+							"    console.log(base64String);\r",
+							"\r",
+							"    // 【AES解密】\r",
+							"    const keyBytes = CryptoJS.enc.Utf8.parse(secret);\r",
+							"    const decrypted = CryptoJS.AES.decrypt(base64String, keyBytes, {\r",
+							"        mode: CryptoJS.mode.ECB,\r",
+							"        padding: CryptoJS.pad.Pkcs7\r",
+							"    });\r",
+							"\r",
+							"    // 將解密結果轉為原始資料（utf-8 編碼）\r",
+							"    const decryptedBytes = decrypted.toString(CryptoJS.enc.Latin1); \r",
+							"    console.log(decryptedBytes);\r",
+							"    const rawData = Buffer.from(new Uint8Array(decryptedBytes.split('').map(char => char.charCodeAt(0),'utf-8'))).toString();\r",
+							"\r",
+							"    return rawData;\r",
+							"}\r",
+							"function hexToBytes(hex) {\r",
+							"    let bytes = [];\r",
+							"    for (let i = 0; i < hex.length; i += 2) {\r",
+							"        bytes.push(parseInt(hex.substr(i, 2), 16));\r",
+							"    }\r",
+							"    return bytes;\r",
+							"}\r",
+							"\r",
+							"function bytesToBase64(bytes) {\r",
+							"    const decryptedHexString = Buffer.from(bytes).toString('utf-8');\r",
+							"    return decryptedHexString;\r",
+							"}\r",
+							"\r",
+							"\r",
+							"//先取出收到body，取主體即可\r",
+							"var body = JSON.parse(pm.response.text());\r",
+							"console.log(body)\r",
+							"\r",
+							"var txdetails = body.TRANRS;\r",
+							"\r",
+							"console.log(`txdetails:${txdetails}`);\r",
+							"\r",
+							"// 金鑰\r",
+							"const secret = pm.environment.get(\"secret_key\");\r",
+							"\r",
+							"// 解密\r",
+							"let decryptData = aesDecrypt(txdetails,secret);\r",
+							"\r",
+							"console.log(`decryptData:${decryptData}`);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"MWHEADER\": {\r\n        \"MSGID\": \"IFX-B-IFXRTDCRAMT\",\r\n        \"SOURCECHANNEL\": \"EXT-CE-IFX-91\",\r\n        \"CHANNEL\": \"GMB_API_Group\",\r\n        \"CODEKIND\": \"B1\",\r\n        \"TXNKEY\": \"EXT-CE-IFX-91_20241121_100\",\r\n        \"TIMESTAMP\": \"20241114180001000\"\r\n    },\r\n    \"TRANRQ\": {\r\n        \"cust_id\": \"11337775\",\r\n        \"acno\": \"019087064100\",\r\n        \"from_date\": \"20240901\",\r\n        \"to_date\": \"20240930\",\r\n        \"from_time\": \"000000\",\r\n        \"to_time\": \"999999\",\r\n        \"CcyCode\": \"USD\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/ifxquerytrn",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"ifxquerytrn"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
