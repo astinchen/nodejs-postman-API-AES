@@ -44,7 +44,7 @@ node --watch ifxquerytest.js
 ![ifxquerytest](https://github.com/astinchen/nodejs-postman-API-AES/blob/main/IMG_20241127_164504.png)
 
 
-## AES Encript in postman Pre-request
+## AES Encrypt in postman Pre-request
 
 ```
 function aesEncrypt(data,secret) {
@@ -73,7 +73,7 @@ function stringToUTF8Bytes(str) {
 }
 ```
 
-## AES Decript in postman Post-response
+## AES Decrypt in postman Post-response
 ```
 function aesDecrypt(data,secret) {
     // 【HEX轉String】
